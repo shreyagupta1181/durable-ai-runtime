@@ -4,12 +4,19 @@ from datetime import datetime
 from sqlalchemy import DateTime, Integer, String, Text
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import Mapped, mapped_column
-
+from sqlalchemy import ForeignKey, UniqueConstraint
 from app.db.database import Base
 
 
 class RunEvent(Base):
     __tablename__ = "run_events"
+
+    __table_args__ = (
+    UniqueConstraint(
+        "run_id",
+        "seq",
+        name="uq_run_events_run_id_seq",
+    ),)
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
@@ -18,9 +25,9 @@ class RunEvent(Base):
     )
 
     run_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
-        nullable=False
-    )
+    UUID(as_uuid=True),
+    ForeignKey("runs.id"),
+    nullable=False,)
 
     seq: Mapped[int] = mapped_column(
         Integer,
