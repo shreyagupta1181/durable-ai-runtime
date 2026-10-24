@@ -7,6 +7,14 @@ from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.schemas.run import RunResponse
 from app.services.run_service import create_run, get_run
+from uuid import UUID
+
+from fastapi import Depends, HTTPException
+from sqlalchemy.orm import Session
+
+from app.db.database import get_db
+from app.schemas.run import RunStatusUpdate, RunResponse
+from app.services.run_service import transition_run
 
 router = APIRouter(prefix="/runs", tags=["Runs"])
 
@@ -34,3 +42,19 @@ def get_run_endpoint(
         )
 
     return run
+
+@router.patch("/runs/{run_id}/status", response_model=RunResponse)
+def update_run_status(
+    run_id: UUID,
+    request: RunStatusUpdate,
+    db: Session = Depends(get_db),
+):
+    try:
+        return transition_run(db, run_id, request.status)
+    except ValueError as exc:
+        message = str(exc)
+
+        if message == "Run not found":
+            raise HTTPException(status_code=404, detail=message)
+
+        raise HTTPException(status_code=409, detail=message)

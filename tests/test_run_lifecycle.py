@@ -5,10 +5,11 @@ from datetime import datetime, timezone
 import pytest
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
-
+from sqlalchemy import delete
 from app.db.database import SessionLocal
 from app.models.event import RunEvent
 from app.models.run import Run
+from app.models.job import Job
 from app.services.run_service import create_run, transition_run
 
 
@@ -26,12 +27,17 @@ def run(db):
 
     # Clean up test data after each test.
     db.rollback()
+
+    db.query(Job).filter(Job.run_id == created_run.id).delete(
+        synchronize_session=False
+    )
     db.query(RunEvent).filter(
         RunEvent.run_id == created_run.id
     ).delete(synchronize_session=False)
     db.query(Run).filter(
         Run.id == created_run.id
     ).delete(synchronize_session=False)
+
     db.commit()
 
 
@@ -143,3 +149,17 @@ def test_event_for_nonexistent_run_is_rejected(db):
         db.commit()
 
     db.rollback()
+
+def test_create_run_creates_queued_job(db, run):
+    job = (
+        db.query(Job)
+        .filter(Job.run_id == run.id)
+        .first()
+    )
+
+    assert job is not None
+    assert job.status == "queued"
+    assert job.attempts == 0
+    assert job.max_attempts == 3
+    assert job.locked_by is None
+    assert job.locked_at is None

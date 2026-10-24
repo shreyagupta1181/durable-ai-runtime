@@ -6,7 +6,9 @@ from alembic import context
 
 from app.config import DATABASE_URL
 from app.db.database import Base
-from app.models import Run, RunEvent
+from app.models.run import Run
+from app.models.event import RunEvent
+from app.models.job import Job
 config = context.config
 
 if config.config_file_name is not None:
