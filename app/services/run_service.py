@@ -63,7 +63,8 @@ def get_run(db: Session, run_id: uuid.UUID) -> Run | None:
 
 ALLOWED_TRANSITIONS = {
     "pending": {"running", "cancelled"},
-    "running": {"waiting_approval", "succeeded", "failed"},
+    "running": {"waiting_approval", "retrying", "succeeded", "failed"},
+    "retrying": {"running", "cancelled", "failed"},
     "waiting_approval": {"running", "cancelled"},
     "succeeded": set(),
     "failed": set(),
