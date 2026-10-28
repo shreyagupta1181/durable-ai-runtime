@@ -18,10 +18,14 @@ def db():
 
 @pytest.fixture
 def run(db):
-    created_run = create_run(db)
+    created_run = create_run(
+        db,
+        task="Test task for the durable runtime",
+    )
 
     yield created_run
 
+    # Clean up records created for this test.
     db.rollback()
 
     db.query(Job).filter(

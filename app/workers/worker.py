@@ -19,6 +19,7 @@ from app.services.job_service import (
 )
 
 from app.services.run_service import transition_run
+from app.services.agent_service import execute_agent
 
 
 def append_event(
@@ -149,11 +150,8 @@ def process_one_job(worker_id: str = "worker-1") -> bool:
                 {"worker_id": worker_id},
             )
 
-            # Placeholder until we implement the actual agent loop.
-            result = {
-                "message": "Hello from the worker!",
-            }
-
+            # Execute the task using Gemini.
+            result = execute_agent(db, run_id)  
             append_event(
                 db,
                 run_id,

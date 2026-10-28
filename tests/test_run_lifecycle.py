@@ -22,24 +22,27 @@ def db():
 
 @pytest.fixture
 def run(db):
-    created_run = create_run(db)
+    created_run = create_run(
+        db,
+        task="Test task for the durable runtime",
+    )
     yield created_run
 
-    # Clean up test data after each test.
     db.rollback()
 
-    db.query(Job).filter(Job.run_id == created_run.id).delete(
-        synchronize_session=False
-    )
+    db.query(Job).filter(
+        Job.run_id == created_run.id
+    ).delete(synchronize_session=False)
+
     db.query(RunEvent).filter(
         RunEvent.run_id == created_run.id
     ).delete(synchronize_session=False)
+
     db.query(Run).filter(
         Run.id == created_run.id
     ).delete(synchronize_session=False)
 
     db.commit()
-
 
 def test_create_run_persists_initial_event(db, run):
     assert run.status == "pending"
@@ -54,7 +57,10 @@ def test_create_run_persists_initial_event(db, run):
     assert len(events) == 1
     assert events[0].seq == 1
     assert events[0].type == "run_created"
-    assert events[0].payload == {"status": "pending"}
+    assert events[0].payload == {
+    "status": "pending",
+    "task": "Test task for the durable runtime",
+}
 
 
 def test_valid_transitions_are_persisted(db, run):

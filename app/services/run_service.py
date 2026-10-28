@@ -1,4 +1,3 @@
-
 import uuid
 from datetime import datetime, timezone
 
@@ -9,14 +8,16 @@ from app.models.event import RunEvent
 from app.models.job import Job
 
 
-def create_run(db: Session) -> Run:
+def create_run(db: Session, task: str) -> Run:
     """Create a run, its initial event, and its job atomically."""
 
     try:
+        now = datetime.now(timezone.utc)
+
         run = Run(
             id=uuid.uuid4(),
             status="pending",
-            created_at=datetime.now(timezone.utc),
+            created_at=now,
         )
 
         db.add(run)
@@ -27,8 +28,11 @@ def create_run(db: Session) -> Run:
             run_id=run.id,
             seq=1,
             type="run_created",
-            payload={"status": "pending"},
-            timestamp=datetime.now(timezone.utc),
+            payload={
+                "status": "pending",
+                "task": task,
+            },
+            timestamp=now,
         )
 
         job = Job(
@@ -37,7 +41,7 @@ def create_run(db: Session) -> Run:
             status="queued",
             attempts=0,
             max_attempts=3,
-            available_at=datetime.now(timezone.utc),
+            available_at=now,
             locked_by=None,
             locked_at=None,
         )
@@ -80,7 +84,6 @@ def transition_run(
     """Change a run's status and record the transition atomically."""
 
     try:
-        # Lock this run so concurrent transitions don't overwrite each other.
         run = (
             db.query(Run)
             .filter(Run.id == run_id)
@@ -98,12 +101,10 @@ def transition_run(
                 f"Invalid transition: {old_status} -> {new_status}"
             )
 
-        # Find the next event sequence number for this run.
         last_seq = (
             db.query(RunEvent.seq)
             .filter(RunEvent.run_id == run_id)
             .order_by(RunEvent.seq.desc())
-            .with_for_update()
             .first()
         )
 
@@ -132,4 +133,3 @@ def transition_run(
     except Exception:
         db.rollback()
         raise
-
