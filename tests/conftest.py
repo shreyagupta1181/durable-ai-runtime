@@ -4,6 +4,7 @@ from app.db.database import SessionLocal
 from app.models.run import Run
 from app.models.event import RunEvent
 from app.models.job import Job
+from app.models.tool_step import ToolStep
 from app.services.run_service import create_run
 
 
@@ -14,6 +15,7 @@ def db():
         yield session
     finally:
         session.close()
+
 
 
 @pytest.fixture
@@ -27,6 +29,10 @@ def run(db):
 
     # Clean up records created for this test.
     db.rollback()
+
+    db.query(ToolStep).filter(
+        ToolStep.run_id == created_run.id
+    ).delete(synchronize_session=False)
 
     db.query(Job).filter(
         Job.run_id == created_run.id
